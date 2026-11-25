@@ -1,0 +1,26 @@
+{
+    "tree": [
+        "sheriff",
+        "towguy (custom)",
+        "driver (custom)"
+    ],
+    "button": [
+        "curator",
+        "guard",
+        "3 visitors",
+        "3 tourists (custom)"
+    ],
+    "bridge": [
+        "king",
+        "drummer",
+        "captain",
+        "10 soldiers",
+        "kid",
+        "4 crowd (custom)"
+    ],
+    "night": [
+        "kid",
+        "young man",
+        "old man (custom)"
+    ]
+}

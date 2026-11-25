@@ -1,0 +1,32 @@
+name: transcribe
+on:
+  push:
+    branches: [main]
+    paths: ['*/audio/voice_clean.mp3', '.github/workflows/transcribe.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  words:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -q faster-whisper==1.0.3 requests
+      - name: Word timestamps for every voice_clean.mp3
+        run: |
+          python - <<'PY'
+          import glob, json
+          from faster_whisper import WhisperModel
+          m = WhisperModel("small.en", device="cpu", compute_type="int8")
+          for f in glob.glob("*/audio/voice_clean.mp3"):
+              segs, _ = m.transcribe(f, word_timestamps=True, language="en", beam_size=5)
+              words = [{"w": w.word.strip(), "s": round(w.start, 2), "e": round(w.end, 2)} for s in segs for w in s.words]
+              out = f.split("/")[0] + "_words.json"; json.dump(words, open(out, "w"), indent=0); print(out, len(words))
+          PY
+      - name: Save to the transcripts branch
+        run: |
+          mkdir -p /tmp/w && cp *_words.json /tmp/w/
+          git config user.name "render-bot"; git config user.email "render-bot@users.noreply.github.com"
+          git checkout --orphan transcripts && git rm -rq --cached . && cp /tmp/w/*.json . && git add *_words.json && git commit -qm "words" && git push -f origin transcripts

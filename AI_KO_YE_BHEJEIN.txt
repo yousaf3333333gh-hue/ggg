@@ -1,0 +1,14 @@
+=====================  MESSAGE 1 : new topic + script + SFX list  =====================
+Read AI_START_HERE.md, STORY_WRITER.md and TOPIC_BANK.md first.
+Give me a NEW short: pick a topic that is not used yet (from TOPIC_BANK.md or invent one with the formula),
+100% fictional names and places, real science/psychology fact at the end.
+Send me: 3 one-line ideas + your choice, the final script in a code block (120-150 words, hook first line, punchline last line),
+and the numbered SFX + music search list. Then wait for my voice MP3 and SFX zip. Reply in short Roman Urdu.
+(Optional) My topic idea: ______
+
+=====================  MESSAGE 2 : make the video  =====================
+Here is my voice MP3 and SFX zip for the script above. Now follow AI_START_HERE.md PHASE 2 (steps 1-12) from start to finish
+WITHOUT stopping to ask me anything; fix every error yourself.
+Hard rules: a new moving shot about every 1 second; cuts only when the place changes; faces change every 0.5-1 s on the words with big body reactions;
+nothing passes through anything (register solids, guardCam, QA must say "QA: clean"); new characters not in casting_log.json;
+use ONLY my SFX, quieter than my voice; check a still of every shot before the long render. Render on GitHub and send me the final MP4.

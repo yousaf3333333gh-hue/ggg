@@ -1,0 +1,52 @@
+name: render
+on:
+  push:
+    branches: [main]
+    paths: ['tree/**', 'night/**', 'button/web/**', 'button/audio/mix.mp3', 'bridge/web/**', 'bridge/audio/mix.mp3', 'web/**', 'app.txt', '.github/workflows/render.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  seg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install ffmpeg + browser
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          npm i --no-save playwright@1.47.2 > /dev/null && npx playwright install --with-deps chromium > /dev/null
+      - name: Render four 60-frame segments in parallel (all 4 CPUs)
+        run: |
+          export APP=$(cat app.txt 2>/dev/null || echo tree); N=$(cat $APP/frames.txt 2>/dev/null || echo 1786); A=$(( ${{ matrix.part }} * 240 ))
+          for k in 0 1 2 3; do S=$(( A + k * 60 )); E=$(( S + 60 )); [ $E -gt $N ] && E=$N; [ $S -lt $N ] && node $APP/tools/par_render_mb.cjs good $S $E out/seg > log_$k.txt 2>&1 & done
+          wait; cat log_*.txt 2>/dev/null || true; mkdir -p out/seg; ls out/seg
+      - uses: actions/upload-artifact@v4
+        with: { name: 'seg-${{ matrix.part }}', path: 'out/seg/*.mp4', if-no-files-found: ignore }
+  join:
+    needs: seg
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core > /dev/null
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'seg-*', merge-multiple: true, path: out/seg }
+      - name: Join segments + captions + voice
+        run: |
+          ls out/seg | grep -v part | sort | sed "s|^|file '$PWD/out/seg/|; s|$|'|" > list.txt; wc -l list.txt
+          APP=$(cat app.txt 2>/dev/null || echo tree); AUD=$APP/audio/mix.mp3; [ -f $AUD ] || AUD=$APP/audio/voice.mp3; VF="null"; [ -f $APP/captions.ass ] && VF="ass=$APP/captions.ass"
+          ffmpeg -v error -y -f concat -safe 0 -i list.txt -i $AUD -vf "$VF" -map 0:v -map 1:a -c:v libx264 -profile:v main -preset medium -b:v 3500k -maxrate 4500k -bufsize 9000k -pix_fmt yuv420p -c:a aac -ar 44100 -ac 2 -b:a 160k -shortest -movflags +faststart final.mp4
+          ls -la final.mp4
+      - uses: actions/upload-artifact@v4
+        with: { name: final-video, path: final.mp4 }
+      - name: Save video to the renders branch
+        run: |
+          APPN=$(cat app.txt 2>/dev/null || echo tree); git config user.name "render-bot"; git config user.email "render-bot@users.noreply.github.com"
+          git fetch --depth 1 origin renders && git checkout -B renders FETCH_HEAD || git checkout --orphan renders; git rm -rq --cached . 2>/dev/null; mkdir -p videos && cp final.mp4 videos/${APPN}_$(date +%Y%m%d_%H%M).mp4
+          git add videos && git commit -qm "Rendered video" && git push origin renders
