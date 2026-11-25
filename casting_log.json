@@ -22,5 +22,11 @@
         "kid",
         "young man",
         "old man (custom)"
+    ],
+    "ants": [
+        "mayor",
+        "engineer",
+        "reporter",
+        "ants (custom, 38)"
     ]
 }
