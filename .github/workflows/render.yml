@@ -22,10 +22,11 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
           npm i --no-save playwright@1.47.2 > /dev/null && npx playwright install --with-deps chromium > /dev/null
-      - name: Render four 60-frame segments in parallel (all 4 CPUs)
+      - name: Render this runner's 1/8 share in 4 parallel workers
         run: |
-          export APP=$(cat app.txt 2>/dev/null || echo tree); N=$(cat $APP/frames.txt 2>/dev/null || echo 1786); A=$(( ${{ matrix.part }} * 240 ))
-          for k in 0 1 2 3; do S=$(( A + k * 60 )); E=$(( S + 60 )); [ $E -gt $N ] && E=$N; [ $S -lt $N ] && node $APP/tools/par_render_mb.cjs good $S $E out/seg > log_$k.txt 2>&1 & done
+          export APP=$(cat app.txt 2>/dev/null || echo tree); N=$(cat $APP/frames.txt 2>/dev/null || echo 1786)
+          P=$(( (N + 7) / 8 )); A=$(( ${{ matrix.part }} * P )); Z=$(( A + P )); [ $Z -gt $N ] && Z=$N; Q=$(( (P + 3) / 4 ))
+          for k in 0 1 2 3; do S=$(( A + k * Q )); E=$(( S + Q )); [ $E -gt $Z ] && E=$Z; [ $S -lt $Z ] && node $APP/tools/par_render_mb.cjs good $S $E out/seg > log_$k.txt 2>&1 & done
           wait; cat log_*.txt 2>/dev/null || true; mkdir -p out/seg; ls out/seg
       - uses: actions/upload-artifact@v4
         with: { name: 'seg-${{ matrix.part }}', path: 'out/seg/*.mp4', if-no-files-found: ignore }
