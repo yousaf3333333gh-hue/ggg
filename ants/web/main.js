@@ -10,7 +10,7 @@ import { Performer, EMOTIONS } from '../../web/perform.js';
 import { Cine, T as CT } from '../../web/cine.js';
 import { toonify, placeMarks, CAMPOS } from '../../web/toonkit.js';
 import { makeCast } from '../../web/cast.js';
-import { addSolidCentered, guardCam, setGround } from '../../web/safety.js';
+import { addSolidCentered, guardCam, setGround, SOLIDS } from '../../web/safety.js';
 for (const [n, base, ex] of [['smug', 'proud', 'smug'], ['grin', 'happy', 'grin'], ['gasp', 'shock', 'gasp'], ['awe', 'curious', 'awe'], ['blank', 'neutral', 'blank']]) EMOTIONS[n] = { ...EMOTIONS[base], expr: ex };
 const { stage, dofU, FPS, PX } = C; export const DURATION = 47.6;
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z); const tm = (h, o = {}) => C.toon({ color: new THREE.Color(h), ...o });
@@ -97,7 +97,7 @@ function updatePoles(t) { const green = t < 10.2 || t > 43.4; for (const p of PO
 const BLK = ctex(256, 256, (g, w, h) => { for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + y) % 2 ? '#e8402f' : '#fff4e0'; g.fillRect(x * 32, y * 32, 32, 32); } });
 W.add(box(3.4, 0.03, 3.2, tm(0xffffff, { map: BLK }), 77.6, 0.015, 0.2));
 const SAND = new THREE.Group(); SAND.add(box(1.1, 0.14, 0.8, tm(0xe8c27a), 0, 0.1, 0, 0.05), box(1.14, 0.05, 0.84, tm(0xf08a8a), 0, 0.2, 0, 0.02), box(1.18, 0.05, 0.86, tm(0x7dd05a), 0, 0.25, 0, 0.02), box(1.1, 0.14, 0.8, tm(0xe8c27a), 0, 0.34, 0, 0.05)); SAND.add(box(0.06, 0.3, 0.06, tm(0xf0f0f0), 0.3, 0.5, 0.1), sph(0.07, tm(0xff3a3a), 0.3, 0.7, 0.1, 8, 6)); SAND.position.set(77.7, 0, 0.2); W.add(SAND); addSolidCentered('sandwich', 77.7, 0.2, 0.2, 1.2, 0.4, 0.9, { people: true, cam: true });
-const HILL = new THREE.Group(); HILL.add(cyl(0.25, 1.15, 1.0, tm(0x9a6a3a), 0, 0.5, 0, 16)); HILL.add(sph(0.3, tm(0x120c0a), -0.9, 0.26, 0, 10, 8)); HILL.position.set(85.6, 0, 0.2); W.add(HILL); addSolidCentered('anthill', 85.6, 0.5, 0.2, 2.1, 1.0, 2.1);
+const HILL = new THREE.Group(); HILL.add(cyl(0.25, 1.15, 1.0, tm(0x9a6a3a), 0, 0.5, 0, 16)); HILL.position.set(86.1, 0, 0.2); W.add(HILL); addSolidCentered('anthill', 86.1, 0.5, 0.2, 2.2, 1.0, 2.2); { const hole = new THREE.Group(); const dk = cyl(0.36, 0.36, 0.02, tm(0x0d0806, { noInk: 1 }), 0, 0.012, 0, 20); hole.add(dk); const rg = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 6, 20), tm(0x8a5a2e)); rg.rotation.x = Math.PI / 2; rg.position.y = 0.05; hole.add(rg); const rp = sph(0.55, tm(0x9a6a3a), 0.45, 0.08, 0, 10, 6); rp.scale.y = 0.45; hole.add(rp); hole.position.set(84.55, 0, 0.2); W.add(hole); }
 for (let i = 0; i < 14; i++) { const x = 70 + hash(i) * 30, z = (hash(i + 30) < 0.5 ? -1 : 1) * (4 + hash(i + 9) * 4); const fl = new THREE.Group(); fl.add(cyl(0.02, 0.02, 0.35, tm(0x3a8a3a), 0, 0.17, 0, 6), sph(0.1, tm([0xff6a8a, 0xffd84a, 0xffffff, 0xb08aff][i % 4]), 0, 0.38, 0, 8, 6)); fl.position.set(x, 0, z); W.add(fl); }
 for (const [x, z, s] of [[74, -7, 1.2], [90, -8, 1.1], [96, 5, 1], [68, 8, 1.2], [80, -9.5, 1.4]]) { const tr = makeTree(Math.round(x + z * 3), s); tr.position.set(x, 0, z); W.add(tr); }
 for (const [x, z, r] of [[82.4, -1.5, 0.35], [80.2, 2.2, 0.28], [86.8, 2.6, 0.4]]) { const rk = sph(r, tm(0x9a9aa4), x, r * 0.5, z, 8, 6); rk.scale.y = 0.65; W.add(rk); addSolidCentered('rock' + x, x, r * 0.3, z, r * 1.8, r * 0.7, r * 1.8); }
@@ -105,7 +105,7 @@ for (const [x, z, r] of [[82.4, -1.5, 0.35], [80.2, 2.2, 0.28], [86.8, 2.6, 0.4]
 { const g = new THREE.Group(); g.add(cyl(0.04, 0.04, 1.4, tm(0x33333a), 0, 0.7, 0, 8), box(0.22, 0.55, 0.2, tm(0x22222a), 0, 1.5, 0, 0.03)); for (let i = 0; i < 3; i++) g.add(sph(0.065, tm(0x3a3a40), 0, 1.68 - i * 0.18, 0.1, 8, 6)); g.position.set(80.4, 0, 1.9); W.add(g); addSolidCentered('deadlight', 80.4, 0.7, 1.9, 0.3, 1.5, 0.3); }
 const BF = []; for (let i = 0; i < 4; i++) { const g = new THREE.Group(); const a = box(0.16, 0.01, 0.12, tm([0xffa04a, 0xff6a9a, 0x6ad0ff, 0xffe04a][i], { noInk: 1, side: THREE.DoubleSide }), 0, 0, 0.07), b = box(0.16, 0.01, 0.12, tm([0xffa04a, 0xff6a9a, 0x6ad0ff, 0xffe04a][i], { noInk: 1, side: THREE.DoubleSide }), 0, 0, -0.07); g.add(a, b); g.userData = { a, b }; W.add(g); BF.push(g); }
 // ---------- the two roads ----------
-const CS = new THREE.CatmullRomCurve3([V(84.7, 0, 0.2), V(78.9, 0, 0.2)]), CL = new THREE.CatmullRomCurve3([V(84.7, 0, 0.2), V(83.6, 0, -1.7), V(81.9, 0, -3.5), V(80.0, 0, -3.3), V(79.2, 0, -1.6), V(78.9, 0, 0.2)], false, 'catmullrom', 0.5);
+const CS = new THREE.CatmullRomCurve3([V(84.55, 0, 0.2), V(78.9, 0, 0.2)]), CL = new THREE.CatmullRomCurve3([V(84.5, 0, -0.1), V(83.6, 0, -1.7), V(81.9, 0, -3.5), V(80.0, 0, -3.3), V(79.4, 0, -1.9), V(78.75, 0, -0.7)], false, 'catmullrom', 0.5);
 const LS = CS.getLength(), LL = CL.getLength(), AV = 1.4;
 const DOTM = tm(0xa6ff3c, { unlit: 1, noInk: 1 }), NS = 30, NL = 44, DS = [], DL = [];
 for (let i = 0; i < NS; i++) { const m = cyl(0.085, 0.085, 0.02, DOTM, 0, 0.012, 0, 10); const p = CS.getPointAt((i + 0.5) / NS); m.position.set(p.x, 0.012, p.z); W.add(m); DS.push(m); }
@@ -134,7 +134,7 @@ function loopPos(curve, L, s, w) {
   const out = s < L; const u = clamp(out ? s / L : 1 - (s - L - Math.PI * w) / L, 0, 1); const p = curve.getPointAt(u), tg = curve.getTangentAt(u), n = V(tg.z, 0, -tg.x);
   return p.addScaledVector(n, out ? w : -w);
 }
-const mkLoop = (curve, v, N, base) => { const L = curve.getLength(), w = 0.1; return { curve, L, w, Lt: 2 * L + Math.PI * w, v, N, base }; };
+const mkLoop = (curve, v, N, base) => { const L = curve.getLength(), w = 0.2; return { curve, L, w, Lt: 2 * L + Math.PI * w, v, N, base }; };
 function putOnLoop(a, lp, k, t, Ta, Td, hide) {
   const phi = lp.v * t / lp.Lt + lp.base + k / lp.N, c = phi - Math.floor(phi), s = c * lp.Lt, tStart = t - s / lp.v;
   if (hide || tStart < Ta || tStart >= Td) { a.visible = false; return; }
@@ -157,8 +157,8 @@ function updateAnts(t) {
     ANTS_S.forEach((a, k) => { const r = RANK[k]; const Ta = (opening || r < 7) ? -99 : 20 + (r - 7) * 0.35; putOnLoop(a, LOOP_S, k, t, Ta, 1e9, k === 0 && !opening && t < 17.9); });
     if (!opening) ANTS_L.forEach((a, j) => putOnLoop(a, LOOP_L, j, t, -99, 17.0, false));
     const d = HERO.userData;
-    if (t >= 16 && t < 17.2) { const k = Ks(16, 17.2, t); HERO.visible = true; HERO.position.set(78.7, 0, -1.2 + 1.5 * k); HERO.rotation.y = -Math.PI / 2; HERO.scale.setScalar(d.base); d.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 17 + i * 2.1); }); d.crumb.visible = false; d.inner.position.y = 0; }
-    else if (t >= 17.2 && t < 17.9) { HERO.visible = true; HERO.position.set(78.9, 0.07 * Math.abs(Math.sin((t - 17.2) * 9)), 0.3); HERO.rotation.y = Math.PI; HERO.scale.setScalar(d.base); d.crumb.visible = t > 17.6; }
+    if (t >= 16 && t < 17.2) { const k = Ks(16, 17.2, t); HERO.visible = true; HERO.position.set(78.35, 0, 1.5 - 1.3 * k); HERO.rotation.y = Math.PI / 2; HERO.scale.setScalar(d.base); d.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 17 + i * 2.1); }); d.crumb.visible = false; d.inner.position.y = 0; }
+    else if (t >= 17.2 && t < 17.9) { HERO.visible = true; HERO.position.set(78.35, 0.07 * Math.abs(Math.sin((t - 17.2) * 9)), 0.2); HERO.rotation.y = Math.PI; HERO.scale.setScalar(d.base); d.crumb.visible = t > 17.6; }
     if (HERO.visible) HERO_POS.set(HERO.position.x, 0.2, HERO.position.z);
   }
   // final: ants lead the mayor home (spaced single file)
@@ -188,8 +188,8 @@ HOUSE.add(box(0.1, 1.9, 0.95, tm(0x7a4a2a), 2.5, 0.95, 0.3), box(0.06, 0.9, 0.9,
   for (let i = 0; i < 70; i++) { const x = 66 + hash(i + 7) * 36, z = -5 + hash(i + 70) * 10; if (Math.abs(z - 0.2) < 1.0 && x > 78 && x < 86) continue; if (x > 76 && x < 80 && z > -1.5 && z < 2) continue; const c = cyl(0.0, 0.06, 0.28, tm(0x4aa83a), x, 0.14, z, 5); W.add(c); }
   { const bk = new THREE.Group(); bk.add(box(0.6, 0.35, 0.4, tm(0xc08a4a), 0, 0.18, 0, 0.04), box(0.64, 0.05, 0.44, tm(0xa06a3a), 0, 0.37, 0)); bk.position.set(76.2, 0.0, 1.6); W.add(bk); addSolidCentered('basket', 76.2, 0.2, 1.6, 0.65, 0.4, 0.45); }
   for (const [x, z] of [[74, -2.6], [88.5, 3.4], [94, 1.5]]) { const m = new THREE.Group(); m.add(cyl(0.05, 0.06, 0.2, tm(0xf4efe0), 0, 0.1, 0, 8), sph(0.16, tm(0xe5453a), 0, 0.22, 0, 10, 6)); m.children[1].scale.y = 0.6; m.position.set(x, 0, z); W.add(m); }
-  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; const d = sph(0.28 + 0.1 * hash(i), tm(0x8a5a2e), 85.6 + 1.25 * Math.cos(a), 0.12, 0.2 + 1.25 * Math.sin(a), 8, 6); d.scale.y = 0.5; W.add(d); }
-  W.add(box(6.0, 0.012, 1.0, tm(0xcaa56a), 81.8, 0.006, 0.2));
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; if (Math.cos(a) < -0.35) continue; const d = sph(0.28 + 0.1 * hash(i), tm(0x8a5a2e), 86.1 + 1.35 * Math.cos(a), 0.12, 0.2 + 1.35 * Math.sin(a), 8, 6); d.scale.y = 0.5; W.add(d); }
+  W.add(box(6.0, 0.012, 1.0, tm(0xcaa56a), 81.8, 0.006, 0.2)); for (let i = 0; i < 4; i++) W.add(box(0.12, 0.06, 0.1, tm(0xf1d9a0), 78.35 + 0.1 * i, 0.03, -0.55 - 0.09 * (i % 2), 0.02));
 }
 // ---------- CAST: mayor, engineer, reporter (new for this video) ----------
 const MAY = makeCast(W, 'mayor', { hits: [[9.7, 'take', 1], [11.45, 'jolt', 0.9], [13.4, 'double', 1], [15.2, 'jolt', 1], [45.9, 'double', 0.8]], loops: [[14.4, 15.9, 'rage'], [47.0, 47.6, 'bob']], marks: [['!', 11.45, 12.3], ['x', 14.4, 15.9]] });
@@ -299,7 +299,7 @@ const SH = [
 SH.forEach(([a, b, s]) => CINE.shot(a, b, s));
 const LOOK = mkLook({ sun: [0.5, 0.8, 0.5], lit: '#fff4dc', litK: 1.08, shade: '#a8b4e0', ambSky: '#eef4ff', ambGnd: '#f8f0d8', rim: '#fff0d0', fog: '#dcecff', fogR: [40, 260], sky: ['#2a7ae8', '#6ab6f4', '#cfeaff', '#ffffff'], contrast: 1.05, vig: 0.08, glow: 0.35, sat: 1.2, exposure: 1.05, shadow: 0.8 });
 window.renderFrame = function (f) {
-  const { t } = setup(f); const cam = guardCam(CINE.at(t)); updateSigns(t, cam); window.__W = W; window.__cam = cam; CAMPOS.set(...cam.pos); for (const Pp of ALL) placeMarks(Pp, t);
+  const { t } = setup(f); const cam = guardCam(CINE.at(t)); updateSigns(t, cam); window.__W = W; window.__cam = cam; window.__ants = ANTS_S.concat(ANTS_L, ANTS_F); window.__people = ALL; window.__SOL = SOLIDS; CAMPOS.set(...cam.pos); for (const Pp of ALL) placeMarks(Pp, t);
   applyLook(LOOK, { shadowCenter: [cam.look[0], 1, cam.look[2]], shadowSize: 14 }); C.skyU.uSunSize.value = 0;
   C.setCam({ pos: cam.pos, look: cam.look, fov: cam.fov, roll: cam.roll, near: 0.03, far: 500 });
   dofU.uFocus.value = cam.focus; dofU.uAper.value = cam.ap * PX * 0.6; dofU.uMaxC.value = 10 * PX; dofU.uTime.value = f * 0.37; dofU.uFade.value = 1 - Math.min(1, t / 0.4) + Math.max(0, (t - (DURATION - 0.6)) / 0.6); dofU.uFlash.value = 0;
