@@ -23,7 +23,7 @@ const ctex = (w, h, fn, rep = false) => { const c = mkCanvas(w, h); fn(c.getCont
 const card = (w, h, draw, o = {}) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), tm(0xffffff, { map: ctex(Math.round(256 * w / h), 256, draw), unlit: o.unlit ?? 1, noInk: 1, side: THREE.DoubleSide }));
 // ---------- pop-up signs (billboards that pop with overshoot) ----------
 const SIGNS = [];
-function sign(text, t0, t1, pos, w = 1.6, o = {}) {
+function sign(text, t0, t1, pos, w = 1.6, o = {}) { return;
   const h = o.h ?? w * 0.3;
   const m = card(w, h, (g, W_, H_) => {
     g.fillStyle = o.bg ?? '#ffe14a'; g.beginPath(); if (g.roundRect) g.roundRect(6, 6, W_ - 12, H_ - 12, 36); else g.rect(6, 6, W_ - 12, H_ - 12); g.fill();
@@ -105,7 +105,7 @@ for (const [x, z, r] of [[82.4, -1.5, 0.35], [80.2, 2.2, 0.28], [86.8, 2.6, 0.4]
 { const g = new THREE.Group(); g.add(cyl(0.04, 0.04, 1.4, tm(0x33333a), 0, 0.7, 0, 8), box(0.22, 0.55, 0.2, tm(0x22222a), 0, 1.5, 0, 0.03)); for (let i = 0; i < 3; i++) g.add(sph(0.065, tm(0x3a3a40), 0, 1.68 - i * 0.18, 0.1, 8, 6)); g.position.set(80.4, 0, 1.9); W.add(g); addSolidCentered('deadlight', 80.4, 0.7, 1.9, 0.3, 1.5, 0.3); }
 const BF = []; for (let i = 0; i < 4; i++) { const g = new THREE.Group(); const a = box(0.16, 0.01, 0.12, tm([0xffa04a, 0xff6a9a, 0x6ad0ff, 0xffe04a][i], { noInk: 1, side: THREE.DoubleSide }), 0, 0, 0.07), b = box(0.16, 0.01, 0.12, tm([0xffa04a, 0xff6a9a, 0x6ad0ff, 0xffe04a][i], { noInk: 1, side: THREE.DoubleSide }), 0, 0, -0.07); g.add(a, b); g.userData = { a, b }; W.add(g); BF.push(g); }
 // ---------- the two roads ----------
-const CS = new THREE.CatmullRomCurve3([V(84.5, 0, 0.2), V(78.9, 0, 0.2)]), CL = new THREE.CatmullRomCurve3([V(84.5, 0, 0.2), V(83.6, 0, -1.7), V(81.9, 0, -3.5), V(80.0, 0, -3.3), V(79.2, 0, -1.6), V(78.9, 0, 0.2)], false, 'catmullrom', 0.5);
+const CS = new THREE.CatmullRomCurve3([V(84.7, 0, 0.2), V(78.9, 0, 0.2)]), CL = new THREE.CatmullRomCurve3([V(84.7, 0, 0.2), V(83.6, 0, -1.7), V(81.9, 0, -3.5), V(80.0, 0, -3.3), V(79.2, 0, -1.6), V(78.9, 0, 0.2)], false, 'catmullrom', 0.5);
 const LS = CS.getLength(), LL = CL.getLength(), AV = 1.4;
 const DOTM = tm(0xa6ff3c, { unlit: 1, noInk: 1 }), NS = 30, NL = 44, DS = [], DL = [];
 for (let i = 0; i < NS; i++) { const m = cyl(0.085, 0.085, 0.02, DOTM, 0, 0.012, 0, 10); const p = CS.getPointAt((i + 0.5) / NS); m.position.set(p.x, 0.012, p.z); W.add(m); DS.push(m); }
@@ -117,43 +117,80 @@ function updateDots(t) {
 }
 // road paint dashes (engineer paints where the ants walk)
 const DASH = []; for (let i = 0; i < 9; i++) { const m = box(0.5, 0.02, 0.14, tm(0xfff2a0, { unlit: 0.8 }), 83.7 - i * 0.6, 0.012, 0.2); m.visible = false; W.add(m); DASH.push(m); }
-// ---------- ants ----------
+// ---------- ants: every ant owns its place on a conveyor loop (two lanes), nobody overlaps, they come out of / go into the nest hole ----------
 const ANTM = tm(0x2a1c18), ANTM2 = tm(0x3b2a22), EYEW = tm(0xffffff, { noInk: 1 }), PUP = tm(0x111111, { noInk: 1 }), CRUMB = tm(0xf1d9a0);
+const AS = 0.62;
 function makeAnt(hero = false) {
   const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
   inner.add(sph(0.11, ANTM, -0.18, 0.17, 0, 10, 8), sph(0.07, ANTM2, -0.02, 0.17, 0, 10, 8), sph(0.09, ANTM, 0.14, 0.2, 0, 10, 8));
   for (const z of [0.045, -0.045]) { inner.add(sph(0.032, EYEW, 0.2, 0.25, z, 8, 6)); inner.add(sph(0.016, PUP, 0.228, 0.25, z, 6, 5)); }
   const legs = []; for (const dx of [-0.09, 0.0, 0.08]) { const l = box(0.022, 0.022, 0.36, ANTM, dx, 0.1, 0); inner.add(l); legs.push(l); }
-  for (const z of [0.05, -0.05]) { const a = box(0.12, 0.016, 0.016, ANTM, 0.22, 0.34, z); a.rotation.z = 0.5; inner.add(a); }
+  for (const z of [0.05, -0.05]) { const a2 = box(0.12, 0.016, 0.016, ANTM, 0.22, 0.34, z); a2.rotation.z = 0.5; inner.add(a2); }
   const crumb = box(0.13, 0.08, 0.12, CRUMB, -0.02, 0.33, 0, 0.02); inner.add(crumb);
-  g.scale.setScalar(hero ? 1.45 : 1); g.userData = { inner, legs, crumb, hero }; W.add(g); return g;
+  g.userData = { inner, legs, crumb, hero, base: AS * (hero ? 1.25 : 1) }; g.scale.setScalar(g.userData.base); W.add(g); return g;
 }
-function putAnt(a, curve, u, dir, t, ph, carry, sc = 1) {
-  const p = curve.getPointAt(clamp(u, 0, 1)), tg = curve.getTangentAt(clamp(u, 0, 1)); a.visible = sc > 0.01;
-  a.position.set(p.x, 0, p.z); a.rotation.y = Math.atan2(-tg.z * dir, tg.x * dir); const d = a.userData, hs = d.hero ? 1.45 : 1; a.scale.setScalar(hs * sc);
-  d.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 15 + ph + i * 2.1); }); d.inner.position.y = 0.012 * Math.sin(t * 15 + ph); d.crumb.visible = carry;
+function loopPos(curve, L, s, w) {
+  if (s >= L && s < L + Math.PI * w) { const a = (s - L) / w, p = curve.getPointAt(1), tg = curve.getTangentAt(1), n = V(tg.z, 0, -tg.x); return p.addScaledVector(n, w * Math.cos(a)).addScaledVector(tg, w * Math.sin(a)); }
+  const out = s < L; const u = clamp(out ? s / L : 1 - (s - L - Math.PI * w) / L, 0, 1); const p = curve.getPointAt(u), tg = curve.getTangentAt(u), n = V(tg.z, 0, -tg.x);
+  return p.addScaledVector(n, out ? w : -w);
 }
-const ANTS_S = [], ANTS_L = [], ANTS_F = []; for (let i = 0; i < 28; i++) ANTS_S.push(makeAnt()); for (let i = 0; i < 10; i++) ANTS_L.push(makeAnt()); for (let i = 0; i < 8; i++) ANTS_F.push(makeAnt());
-const HERO = makeAnt(true); const HERO_POS = V(79, 0, 0.2);
-function cyc(curve, L, t, T0, ant, i, sc = 1) { const c = frac((t - T0) * AV / (2 * L)); const out = c < 0.5; const u = out ? 2 * c : 2 - 2 * c; putAnt(ant, curve, u, out ? 1 : -1, t, i * 1.7, !out, sc); }
+const mkLoop = (curve, v, N, base) => { const L = curve.getLength(), w = 0.1; return { curve, L, w, Lt: 2 * L + Math.PI * w, v, N, base }; };
+function putOnLoop(a, lp, k, t, Ta, Td, hide) {
+  const phi = lp.v * t / lp.Lt + lp.base + k / lp.N, c = phi - Math.floor(phi), s = c * lp.Lt, tStart = t - s / lp.v;
+  if (hide || tStart < Ta || tStart >= Td) { a.visible = false; return; }
+  const p = loopPos(lp.curve, lp.L, s, lp.w), q = loopPos(lp.curve, lp.L, Math.min(s + 0.05, lp.Lt - 0.001), lp.w); const d = a.userData;
+  const sm = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }; const sc = sm(s / 0.4) * sm((lp.Lt - s) / 0.4);
+  a.visible = sc > 0.02; a.position.set(p.x, 0, p.z); a.rotation.y = Math.atan2(-(q.z - p.z), q.x - p.x); a.scale.setScalar(d.base * Math.max(sc, 0.001));
+  d.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 17 + k * 1.7 + i * 2.1); }); d.inner.position.y = 0.012 * Math.sin(t * 17 + k); d.crumb.visible = s > lp.L + Math.PI * lp.w * 0.5;
+}
+const NS_ANTS = 26, NL_ANTS = 8, LOOP_S = mkLoop(CS, 1.8, NS_ANTS, 0), LOOP_L = mkLoop(CL, 1.2, NL_ANTS, 0.37);
+LOOP_S.base = (((LS) / LOOP_S.Lt - LOOP_S.v * 17.9 / LOOP_S.Lt) % 1 + 1) % 1;       // hero (slot 0) is at the sandwich edge at t = 17.9
+const ANTS_S = [], ANTS_L = [], ANTS_F = [];
+const HERO = makeAnt(true); ANTS_S.push(HERO); for (let i = 1; i < NS_ANTS; i++) ANTS_S.push(makeAnt()); for (let i = 0; i < NL_ANTS; i++) ANTS_L.push(makeAnt()); for (let i = 0; i < 8; i++) ANTS_F.push(makeAnt());
+const ORDER = [0]; { const br = (x) => { let r = 0; for (let b = 0; b < 5; b++) r |= ((x >> b) & 1) << (4 - b); return r; }; for (let i = 1; i < 32; i++) { const k = br(i); if (k > 0 && k < NS_ANTS) ORDER.push(k); } }
+const RANK = []; ORDER.forEach((k, r) => { RANK[k] = r; });
+const HERO_POS = V(79, 0, 0.2);
 function updateAnts(t) {
-  const park = t < 3.4 || (t >= 16 && t < 43.7); ANTS_S.concat(ANTS_L, ANTS_F, [HERO]).forEach((a) => { a.visible = false; });
+  ANTS_S.concat(ANTS_L, ANTS_F).forEach((a) => { a.visible = false; });
+  const opening = t < 3.4, park = opening || (t >= 16 && t < 43.7);
   if (park) {
-    ANTS_S.forEach((a, i) => { let on, T0, sc = 1; if (t < 3.4) { on = i < 24; T0 = -i * 0.55; } else if (i < 7) { on = true; T0 = -i * 1.1; } else { T0 = 25 + (i - 7) * 0.14; on = t >= T0; sc = Math.min(1, (t - T0) / 0.3); } if (on) cyc(CS, LS, t, T0, a, i, sc); });
-    if (t >= 16) ANTS_L.forEach((a, j) => { const off = 25.2 + j * 0.3; if (t < off + 0.3) cyc(CL, LL, t, -j * 1.2, a, j + 40, Math.min(1, (off + 0.3 - t) / 0.3)); });
-    // the hero ant
-    if (t >= 16 && t < 17.2) { const k = Ks(16, 17.2, t); const u = 0.985 - 0.0 * k; const p = V(78.6 - 0.4 * (1 - k), 0, -1.0 + 1.2 * k); HERO.visible = true; HERO.position.copy(p); HERO.rotation.y = Math.atan2(-(1.2), -0.4 * -0.0 + 0.0001) + 0; HERO.rotation.y = -Math.atan2(1.2, 0.01) + 0; HERO.scale.setScalar(1.45); HERO.userData.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 15 + i * 2.1); }); HERO.userData.crumb.visible = false; HERO.userData.inner.position.y = 0.012 * Math.sin(t * 15); }
-    else if (t >= 17.2 && t < 17.9) { HERO.visible = true; HERO.position.set(78.9, 0.09 * Math.abs(Math.sin((t - 17.2) * 9)), 0.2); HERO.rotation.y = Math.PI; HERO.scale.setScalar(1.45); HERO.userData.crumb.visible = t > 17.6; }
-    else if (t >= 17.9 && t < 21.8) { const u = 1 - (t - 17.9) * AV / LS; putAnt(HERO, CS, u, -1, t, 0, true); }
-    else if (t >= 21.8) cyc(CS, LS, t, 21.8, HERO, 99);
+    ANTS_S.forEach((a, k) => { const r = RANK[k]; const Ta = (opening || r < 7) ? -99 : 20 + (r - 7) * 0.35; putOnLoop(a, LOOP_S, k, t, Ta, 1e9, k === 0 && !opening && t < 17.9); });
+    if (!opening) ANTS_L.forEach((a, j) => putOnLoop(a, LOOP_L, j, t, -99, 17.0, false));
+    const d = HERO.userData;
+    if (t >= 16 && t < 17.2) { const k = Ks(16, 17.2, t); HERO.visible = true; HERO.position.set(78.7, 0, -1.2 + 1.5 * k); HERO.rotation.y = -Math.PI / 2; HERO.scale.setScalar(d.base); d.legs.forEach((l, i) => { l.rotation.y = 0.5 * Math.sin(t * 17 + i * 2.1); }); d.crumb.visible = false; d.inner.position.y = 0; }
+    else if (t >= 17.2 && t < 17.9) { HERO.visible = true; HERO.position.set(78.9, 0.07 * Math.abs(Math.sin((t - 17.2) * 9)), 0.3); HERO.rotation.y = Math.PI; HERO.scale.setScalar(d.base); d.crumb.visible = t > 17.6; }
     if (HERO.visible) HERO_POS.set(HERO.position.x, 0.2, HERO.position.z);
   }
-  // final: ants lead the mayor home
-  const fin = t >= 45.35; ANTS_F.forEach((a, i) => { if (!fin) return; const x = 75.0 - 2.4 * (t - 45.4) - 0.55 * i; const sc = x > 70.9 ? 1 : Math.max(0, 1 - (70.9 - x) / 0.5); putAnt(a, new THREE.LineCurve3(V(x, 0, 0.3), V(x - 1, 0, 0.3)), 0, 1, t, i * 1.3, i % 2 === 0, sc); a.position.set(x, 0, 0.3 + 0.1 * Math.sin(i)); a.rotation.y = Math.PI; });
+  // final: ants lead the mayor home (spaced single file)
+  if (t >= 45.35) ANTS_F.forEach((a, i) => { const x = 75.0 - 2.4 * (t - 45.4) - 0.6 * i, d = a.userData; const sc = x > 70.95 ? 1 : Math.max(0, 1 - (70.95 - x) / 0.5); a.visible = sc > 0.02; a.position.set(x, 0, 0.3 + 0.05 * Math.sin(i * 2)); a.rotation.y = Math.PI; a.scale.setScalar(d.base * Math.max(sc, 0.001)); d.legs.forEach((l, q) => { l.rotation.y = 0.5 * Math.sin(t * 17 + i + q * 2.1); }); d.crumb.visible = i % 2 === 0; });
 }
+// smell ring around the hero ant ("she only smells the ground under her")
+const RING = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.018, 6, 28), tm(0xa6ff3c, { unlit: 1, noInk: 1 })); RING.rotation.x = Math.PI / 2; RING.visible = false; W.add(RING);
 // house at the end of the road
 const HOUSE = new THREE.Group(); HOUSE.add(box(5, 3, 4.2, tm(0xf0d6a0), 0, 1.5, 0, 0.08)); { const roof = cyl(0.01, 3.9, 1.5, tm(0xc0543e), 0, 3.75, 0, 4); roof.rotation.y = Math.PI / 4; roof.scale.z = 0.85; HOUSE.add(roof); }
 HOUSE.add(box(0.1, 1.9, 0.95, tm(0x7a4a2a), 2.5, 0.95, 0.3), box(0.06, 0.9, 0.9, tm(0xa8d8ff), 2.5, 1.9, -1.2), box(0.06, 0.9, 0.9, tm(0xa8d8ff), 2.5, 1.9, 1.6)); HOUSE.position.set(68.2, 0, 0.0); W.add(HOUSE); addSolidCentered('house', 68.2, 1.5, 0, 5, 3, 4.2);
+// ---------- extra 3D scenery ----------
+{ const grey = tm(0xbdb8aa), brown = tm(0x7a4a2a), red = tm(0xd8402a);
+  for (const z of [-1.75, 1.75]) W.add(box(70, 0.12, 0.14, grey, 0, 0.06, z));
+  for (let i = -3; i <= 3; i++) W.add(box(0.45, 0.066, 3.2, tm(0xf4f0e0), 9 + i * 0.9, 0.034, 0));
+  for (const x of [-9, 1, 12]) { const g = new THREE.Group(); g.add(cyl(0.06, 0.07, 3.6, tm(0x2e2e36), 0, 1.8, 0, 8), sph(0.22, tm(0xfff2a0, { unlit: 1, noInk: 1 }), 0, 3.7, 0, 10, 8), box(0.5, 0.06, 0.06, tm(0x2e2e36), 0.15, 3.5, 0)); g.position.set(x, 0, 2.15); W.add(g); addSolidCentered('lamp' + x, x, 1.8, 2.15, 0.2, 3.6, 0.2); }
+  for (const x of [-6.5, 6.5]) { const g = new THREE.Group(); g.add(box(1.5, 0.1, 0.5, brown, 0, 0.5, 0), box(1.5, 0.5, 0.08, brown, 0, 0.85, -0.22), box(0.08, 0.5, 0.4, tm(0x333333), -0.65, 0.25, 0), box(0.08, 0.5, 0.4, tm(0x333333), 0.65, 0.25, 0)); g.position.set(x, 0, -3.6); W.add(g); addSolidCentered('bench' + x, x, 0.5, -3.6, 1.5, 1.0, 0.5); }
+  { const h = new THREE.Group(); h.add(cyl(0.12, 0.14, 0.55, red, 0, 0.28, 0, 10), sph(0.13, red, 0, 0.58, 0, 10, 8), box(0.34, 0.08, 0.08, red, 0, 0.4, 0)); h.position.set(5.2, 0, -2.2); W.add(h); addSolidCentered('hydrant', 5.2, 0.3, -2.2, 0.3, 0.6, 0.3); }
+  for (let i = -6; i <= 6; i++) { const x = i * 5.1; W.add(box(0.95, 1.75, 0.08, brown, x + 0.9, 0.88, -6.15), box(1.5, 1.0, 0.06, tm(0xa8d8ff), x - 0.9, 1.25, -6.15)); const aw = box(3.0, 0.1, 1.1, tm([0xe5453a, 0x3a7be5, 0xf0c040, 0x6ac25a][(i + 6) % 4]), x, 2.3, -5.7); aw.rotation.x = 0.28; W.add(aw); }
+  for (let i = -11; i <= 11; i++) { const b = sph(0.42 + 0.1 * hash(i + 3), tm(0x4aa84a), i * 2.9, 0.38, -4.15, 8, 6); b.scale.y = 0.8; W.add(b); }
+}
+// park: fence, pond, bushes, tufts, basket, mushrooms, dirt around the hill
+{ const wood = tm(0xb98a56);
+  for (let x = 64; x <= 104; x += 1.4) { W.add(box(0.12, 0.9, 0.12, wood, x, 0.45, -6.2)); }
+  W.add(box(41, 0.08, 0.06, wood, 84, 0.7, -6.2), box(41, 0.08, 0.06, wood, 84, 0.35, -6.2)); addSolidCentered('fence', 84, 0.45, -6.2, 41, 0.9, 0.2);
+  { const pd = cyl(1.8, 1.8, 0.02, tm(0x5ab4e8, { unlit: 0.5 }), 91, 0.012, -3.4, 24); W.add(pd); }
+  for (let i = 0; i < 16; i++) { const b = sph(0.45 + 0.2 * hash(i), tm(0x3f9a3f), 64 + i * 2.6, 0.4, -5.4 - 0.2 * (i % 2), 8, 6); b.scale.y = 0.8; W.add(b); }
+  for (let i = 0; i < 70; i++) { const x = 66 + hash(i + 7) * 36, z = -5 + hash(i + 70) * 10; if (Math.abs(z - 0.2) < 1.0 && x > 78 && x < 86) continue; if (x > 76 && x < 80 && z > -1.5 && z < 2) continue; const c = cyl(0.0, 0.06, 0.28, tm(0x4aa83a), x, 0.14, z, 5); W.add(c); }
+  { const bk = new THREE.Group(); bk.add(box(0.6, 0.35, 0.4, tm(0xc08a4a), 0, 0.18, 0, 0.04), box(0.64, 0.05, 0.44, tm(0xa06a3a), 0, 0.37, 0)); bk.position.set(76.2, 0.0, 1.6); W.add(bk); addSolidCentered('basket', 76.2, 0.2, 1.6, 0.65, 0.4, 0.45); }
+  for (const [x, z] of [[74, -2.6], [88.5, 3.4], [94, 1.5]]) { const m = new THREE.Group(); m.add(cyl(0.05, 0.06, 0.2, tm(0xf4efe0), 0, 0.1, 0, 8), sph(0.16, tm(0xe5453a), 0, 0.22, 0, 10, 6)); m.children[1].scale.y = 0.6; m.position.set(x, 0, z); W.add(m); }
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; const d = sph(0.28 + 0.1 * hash(i), tm(0x8a5a2e), 85.6 + 1.25 * Math.cos(a), 0.12, 0.2 + 1.25 * Math.sin(a), 8, 6); d.scale.y = 0.5; W.add(d); }
+  W.add(box(6.0, 0.012, 1.0, tm(0xcaa56a), 81.8, 0.006, 0.2));
+}
 // ---------- CAST: mayor, engineer, reporter (new for this video) ----------
 const MAY = makeCast(W, 'mayor', { hits: [[9.7, 'take', 1], [11.45, 'jolt', 0.9], [13.4, 'double', 1], [15.2, 'jolt', 1], [45.9, 'double', 0.8]], loops: [[14.4, 15.9, 'rage'], [47.0, 47.6, 'bob']], marks: [['!', 11.45, 12.3], ['x', 14.4, 15.9]] });
 const ENG = makeCast(W, 'engineer', { hits: [[9.8, 'shake', 0.8], [29.4, 'take', 1], [33.9, 'jolt', 0.6]], loops: [[40.7, 42.4, 'nod']], marks: [['!', 29.4, 30.1]] });
@@ -192,7 +229,7 @@ function setup(f) {
   const xe2 = 83.4 - 4.3 * clamp((t - 30) / 4, 0, 1); DASH.forEach((m, i) => { m.visible = t >= 3.4 && ((t > 30.9 && 83.7 - i * 0.6 > xe2 - 0.2) || t >= 34.0) && t < 43.7; });
   // butterflies
   BF.forEach((b, i) => { const a = t * (0.5 + i * 0.12) + i * 1.9; b.position.set(80 + 5 * Math.cos(a) + i * 1.5, 0.9 + 0.3 * Math.sin(a * 2.1), -2 + 4 * Math.sin(a)); b.rotation.y = -a; const fl = 0.9 * Math.sin(t * 22 + i); b.userData.a.rotation.x = fl; b.userData.b.rotation.x = -fl; b.visible = (t < 3.4 || (t >= 16 && t < 43.7)); });
-  updateCars(t); updateVans(t); updateParade(t); updatePoles(t); updateDots(t); updateAnts(t);
+  updateCars(t); updateVans(t); updateParade(t); updatePoles(t); updateDots(t); updateAnts(t); RING.visible = t > 35.0 && t < 37.2; if (RING.visible) { RING.position.set(HERO_POS.x, 0.03, HERO_POS.z); RING.scale.setScalar(1 + 0.15 * Math.sin(t * 8)); }
   return { t };
 }
 // ---------- SIGNS (popped on the words) ----------
@@ -218,56 +255,48 @@ sign('DELIVERY TRUCKS', 44.0, 45.3, SY(0, 3.0, 0), 2.6, { bg: '#7dd0ff' });
 // ---------- CAMERA: ~58 shots, every shot moves; cuts only when the place changes ----------
 const CINE = new Cine({ blend: 0.32 }); const HP = (m) => () => m.headWorld(); const hp = () => HERO_POS.clone();
 const SH = [
-  [0, 1.0, { rig: 'fly', path: [[90, 4.5, 6.5], [86.5, 1.6, 3.3]], at: P(84.5, 0.4, 0.2), fov: [40, 34], shake: 0.3, cut: true }],
-  [1.0, 2.0, { rig: 'orbit', at: P(82, 0.2, 0.2), size: [1.3, 1.0], az: [75, 20], el: [4, 7], fov: 32, shake: 0.4 }],
-  [2.0, 3.4, { rig: 'crane', at: P(81.7, 0, 0.2), size: [2.6, 6.5], az: [-20, 20], el: [12, 68], fov: 34, shake: 0.2 }],
-  [3.4, 4.4, { rig: 'fly', path: [[-14, 6.5, 10], [-5, 3.0, 5.5]], at: P(-1, 1.2, -2), fov: [42, 36], shake: 0.3, cut: true }],
-  [4.4, 5.5, { rig: 'orbit', at: HP(MAY), size: [1.7, 1.2], az: [-25, 40], el: [8, 6], fov: 32, shake: 0.4 }],
-  [5.5, 6.3, { rig: 'push', at: P(-3.0, 1.3, -3.0), size: [4.2, 2.4], az: [10, -10], el: [6, 4], fov: 32, shake: 0.4 }],
-  [6.3, 7.4, { rig: 'orbit', at: P(0, 1.6, -1.9), size: [5, 3.2], az: [-70, -15], el: [8, 12], fov: 34, shake: 0.3 }],
-  [7.4, 8.6, { rig: 'orbit', at: P(0, 1.1, -1.0), size: [5.6, 4.4], az: [-30, 40], el: [26, 20], fov: 32, shake: 0.4 }],
-  [8.6, 9.5, { rig: 'push', at: HP(MAY), size: [1.8, 1.0], az: [-20, -5], el: [6, 3], fov: 30, shake: 0.3, ease: 'snap', fovKick: 4 }],
-  [9.5, 10.4, { rig: 'orbit', at: P(-2, 1.0, -1.0), size: [5.2, 4.0], az: [-30, 40], el: [28, 22], fov: 32, shake: 0.8, fovKick: 8 }],
-  [10.4, 11.4, { rig: 'push', at: P(-6, 2, -1.5), size: [3, 1.8], az: [30, 10], el: [10, 6], fov: 32, shake: 0.7 }],
-  [11.4, 12.2, { rig: 'crane', at: P(-3, 0.4, 0), size: [7, 16], az: [0, 40], el: [15, 70], fov: 36, shake: 0.5, ease: 'snap' }],
-  [12.2, 13.3, { rig: 'orbit', at: P(-6, 1.0, 0.0), size: [5.0, 4.0], az: [-50, 10], el: [22, 16], fov: 32, shake: 1.0, fovKick: 8 }],
-  [13.3, 14.3, { rig: 'crane', at: P(3.0, 1.9, -0.85), size: [3.4, 2.0], az: [40, -30], el: [30, 8], fov: 34, shake: 0.4 }],
-  [14.3, 15.3, { rig: 'orbit', at: HP(MAY), size: [2.6, 2.0], az: [-70, 20], el: [6, 8], fov: 32, shake: 0.8 }],
-  [15.3, 16.0, { rig: 'push', at: HP(MAY), size: [2.6, 1.7], az: [15, 5], el: [4, 4], fov: 30, shake: 0.5, ease: 'snap', fovKick: 8 }],
-  [16.0, 17.0, { rig: 'crane', at: P(78.4, 0.3, 0.2), size: [3.2, 1.6], az: [30, -30], el: [60, 15], fov: 34, shake: 0.3, cut: true }],
-  [17.0, 17.9, { rig: 'push', at: hp, size: [1.1, 0.55], az: [-40, -10], el: [10, 8], fov: 30, shake: 0.5, fovKick: 6 }],
-  [17.9, 18.9, { rig: 'orbit', at: hp, size: [0.9, 0.8], az: [-80, 0], el: [8, 10], fov: 32, shake: 0.4 }],
-  [18.9, 19.9, { rig: 'push', at: hp, size: [1.0, 0.55], az: [50, 80], el: [30, 22], fov: 30, shake: 0.4 }],
-  [19.9, 21.0, { rig: 'crane', at: P(81.7, 0, -1.4), size: [6, 11], az: [0, 20], el: [55, 78], fov: 36, shake: 0.2 }],
-  [21.0, 22.0, { rig: 'orbit', at: P(81.7, 0.1, 0.2), size: [1.4, 1.1], az: [90, 40], el: [4, 6], fov: 32, shake: 0.5 }],
-  [22.0, 22.9, { rig: 'push', at: P(80.4, 0.05, 0.2), size: [1.2, 0.6], az: [10, -10], el: [25, 18], fov: 30, shake: 0.4 }],
-  [22.9, 23.9, { rig: 'crane', at: P(81.0, 0, -3.2), size: [3, 6], az: [-50, 10], el: [20, 60], fov: 34, shake: 0.3 }],
-  [23.9, 24.9, { rig: 'orbit', at: P(81.3, 0.1, -3.2), size: [1.6, 1.3], az: [-120, -60], el: [6, 8], fov: 32, shake: 0.4 }],
-  [24.9, 26.0, { rig: 'crane', at: P(81.7, 0, -1.4), size: [9, 12], az: [20, -20], el: [55, 75], fov: 36, shake: 0.2 }],
-  [26.0, 27.4, { rig: 'orbit', at: P(81.5, 0.1, 0.2), size: [1.6, 1.2], az: [-100, -30], el: [4, 8], fov: 32, shake: 0.5 }],
-  [27.4, 28.2, { rig: 'push', at: P(82.3, 0.8, 0.2), size: [2.4, 1.4], az: [60, 40], el: [10, 8], fov: 32, shake: 0.6, ease: 'snap', fovKick: 6 }],
-  [28.2, 29.0, { rig: 'orbit', at: P(80.4, 1.0, 1.9), size: [1.8, 1.4], az: [-50, 10], el: [8, 6], fov: 32, shake: 0.4 }],
-  [29.0, 30.0, { rig: 'crane', at: HP(ENG), size: [3.0, 1.8], az: [25, -20], el: [45, 8], fov: 34, shake: 0.5, ease: 'snap', fovKick: 6 }],
-  [30.0, 31.0, { rig: 'orbit', at: HP(ENG), size: [2.2, 1.6], az: [100, 40], el: [8, 10], fov: 32, shake: 0.4 }],
-  [31.0, 32.0, { rig: 'push', at: () => ROLLP.clone().add(V(0, 0.1, -0.2)), size: [1.4, 0.7], az: [-30, -10], el: [30, 18], fov: 30, shake: 0.4 }],
-  [32.0, 33.2, { rig: 'orbit', at: () => ENG.root.position.clone().add(V(0, 0.9, 0)), size: [3, 2.2], az: [-100, -30], el: [8, 12], fov: 32, shake: 0.3 }],
-  [33.2, 34.2, { rig: 'crane', at: P(81.7, 0, 0.2), size: [3.5, 7], az: [-40, 0], el: [25, 62], fov: 34, shake: 0.2 }],
-  [34.2, 35.0, { rig: 'push', at: hp, size: [1.0, 0.5], az: [-30, -10], el: [6, 4], fov: 30, shake: 0.4 }],
-  [35.0, 36.0, { rig: 'orbit', at: hp, size: [0.7, 0.55], az: [-70, 30], el: [8, 10], fov: 30, shake: 0.4 }],
-  [36.0, 37.2, { rig: 'push', at: () => V(HERO_POS.x, 0.05, HERO_POS.z), size: [1.0, 0.6], az: [20, 0], el: [30, 20], fov: 30, shake: 0.3 }],
-  [37.2, 38.4, { rig: 'crane', at: P(81.7, 0.1, 0.2), size: [2.5, 4.5], az: [30, -10], el: [15, 50], fov: 34, shake: 0.3 }],
-  [38.4, 39.5, { rig: 'orbit', at: P(80, 0.1, 0.2), size: [1.4, 1.0], az: [-60, 20], el: [5, 8], fov: 32, shake: 0.4 }],
-  [39.5, 40.6, { rig: 'crane', at: P(81.7, 0, 0.2), size: [6, 10], az: [0, 50], el: [45, 75], fov: 36, shake: 0.3 }],
-  [40.6, 41.5, { rig: 'orbit', at: P(81.7, 0.1, 0.2), size: [1.8, 1.3], az: [100, 160], el: [5, 8], fov: 32, shake: 0.4 }],
-  [41.5, 42.6, { rig: 'push', at: P(82, 0.2, 0.2), size: [3.5, 1.8], az: [-20, -5], el: [20, 12], fov: 32, shake: 0.3 }],
-  [42.6, 43.7, { rig: 'push', at: P(82.4, 1.3, 0.2), size: [3.8, 2.2], az: [-10, 10], el: [6, 4], fov: 32, shake: 0.7, ease: 'snap', fovKick: 8 }],
-  [43.7, 44.6, { rig: 'orbit', at: P(0, 1.0, 0.0), size: [6, 4.8], az: [-30, 20], el: [24, 20], fov: 32, shake: 0.4, cut: true }],
-  [44.6, 45.4, { rig: 'orbit', at: P(0, 1.0, 0.0), size: [5.5, 4.2], az: [20, 55], el: [22, 18], fov: 32, shake: 0.4 }],
-  [45.4, 46.2, { rig: 'orbit', at: P(73.8, 0.3, 0.4), size: [2.6, 1.8], az: [-30, 50], el: [6, 10], fov: 32, shake: 0.4, cut: true }],
-  [46.2, 47.0, { rig: 'push', at: HP(MAY), size: [1.8, 1.0], az: [-40, -20], el: [8, 4], fov: 30, shake: 0.4 }],
-  [47.0, 47.7, { rig: 'crane', at: P(71.4, 1.0, 0.3), size: [3, 12], az: [40, -10], el: [10, 48], fov: 34, shake: 0.2 }],
+  // PARK intro: wide, then ants marching in a clear line
+  [0, 1.7, { rig: 'fly', path: [[92, 5.5, 7.5], [86, 3.4, 5.2]], at: P(82, 0.3, 0.2), fov: [40, 34], shake: 0.15, cut: true }],
+  [1.7, 3.4, { rig: 'orbit', at: P(81.7, 0.2, 0.2), size: 3.6, az: [65, 15], el: [10, 14], fov: 32, shake: 0.15 }],
+  // CITY: the mayor's perfect plan
+  [3.4, 5.2, { rig: 'fly', path: [[-12, 5, 9], [-5, 2.6, 6]], at: P(-2, 1.2, -2.6), fov: [42, 36], shake: 0.15, cut: true }],
+  [5.2, 6.6, { rig: 'orbit', at: P(-2, 1.3, -2.8), size: 3.8, az: [-20, 25], el: [8, 10], fov: 32, shake: 0.15 }],
+  [6.6, 8.0, { rig: 'orbit', at: P(0, 1.5, -1), size: 7.5, az: [-60, -20], el: [14, 16], fov: 34, shake: 0.15 }],
+  [8.0, 9.5, { rig: 'orbit', at: P(-0.5, 1.2, -1.2), size: 4.6, az: [-10, 30], el: [14, 16], fov: 32, shake: 0.15 }],
+  [9.5, 11.4, { rig: 'orbit', at: P(-3, 0.8, -0.5), size: 8, az: [-30, 20], el: [30, 28], fov: 34, shake: 0.3 }],
+  [11.4, 13.3, { rig: 'crane', at: P(-4, 0.4, 0), size: [10, 18], az: [0, 25], el: [35, 65], fov: 36, shake: 0.3 }],
+  [13.3, 14.6, { rig: 'orbit', at: P(3, 1.8, -0.85), size: 4.2, az: [25, -15], el: [14, 10], fov: 32, shake: 0.2 }],
+  [14.6, 16.0, { rig: 'orbit', at: HP(MAY), size: 3.0, az: [-30, 10], el: [8, 8], fov: 32, shake: 0.4 }],
+  // PARK: the ant finds the sandwich, lays scent
+  [16.0, 17.4, { rig: 'crane', at: P(78.6, 0.2, 0.2), size: [5.5, 4.0], az: [30, -10], el: [50, 25], fov: 34, shake: 0.1, cut: true }],
+  [17.4, 18.6, { rig: 'orbit', at: hp, size: 1.9, az: [-50, 10], el: [20, 22], fov: 32, shake: 0.1 }],
+  [18.6, 19.9, { rig: 'orbit', at: hp, size: 2.2, az: [-30, 40], el: [24, 28], fov: 32, shake: 0.1 }],
+  // two roads
+  [19.9, 22.0, { rig: 'crane', at: P(81.7, 0, -1.4), size: [8.5, 8.0], az: [0, 12], el: [62, 72], fov: 36, shake: 0.05 }],
+  [22.0, 23.0, { rig: 'orbit', at: P(81.0, 0.1, 0.2), size: 2.6, az: [70, 40], el: [14, 18], fov: 32, shake: 0.1 }],
+  [23.0, 24.9, { rig: 'orbit', at: P(81.3, 0.1, -2.8), size: 4.2, az: [-40, 20], el: [30, 32], fov: 34, shake: 0.1 }],
+  [24.9, 26.5, { rig: 'crane', at: P(81.7, 0, -1.2), size: [10, 9], az: [20, -20], el: [55, 62], fov: 36, shake: 0.05 }],
+  [26.5, 28.4, { rig: 'orbit', at: P(81.7, 0.1, 0.2), size: 4.4, az: [20, -30], el: [12, 16], fov: 32, shake: 0.1 }],
+  [28.4, 29.3, { rig: 'orbit', at: P(80.4, 0.9, 1.4), size: 2.8, az: [-30, 20], el: [8, 10], fov: 32, shake: 0.1 }],
+  // engineer paints the road
+  [29.3, 30.9, { rig: 'crane', at: HP(ENG), size: [4.8, 3.4], az: [25, -15], el: [40, 12], fov: 34, shake: 0.2 }],
+  [30.9, 33.0, { rig: 'orbit', at: () => ENG.root.position.clone().add(V(0, 0.8, 0)), size: 3.8, az: [-90, -20], el: [18, 20], fov: 32, shake: 0.1 }],
+  [33.0, 34.3, { rig: 'crane', at: P(81.7, 0, 0.2), size: [5, 8], az: [-30, 0], el: [30, 50], fov: 34, shake: 0.1 }],
+  // why it works
+  [34.3, 36.0, { rig: 'orbit', at: hp, size: 1.5, az: [-40, 30], el: [22, 26], fov: 30, shake: 0.1 }],
+  [36.0, 37.3, { rig: 'push', at: () => V(HERO_POS.x, 0.05, HERO_POS.z), size: [2.2, 1.4], az: [20, 0], el: [40, 32], fov: 30, shake: 0.05 }],
+  [37.3, 38.9, { rig: 'crane', at: P(81.7, 0.1, -1.0), size: [6, 5], az: [20, -20], el: [25, 45], fov: 34, shake: 0.1 }],
+  [38.9, 40.6, { rig: 'crane', at: P(81.7, 0, -1.2), size: [9, 8], az: [0, 15], el: [58, 66], fov: 36, shake: 0.05 }],
+  [40.6, 42.4, { rig: 'orbit', at: P(81.7, 0.1, 0.2), size: 4.0, az: [90, 140], el: [14, 18], fov: 32, shake: 0.1 }],
+  [42.4, 43.7, { rig: 'crane', at: P(81.7, 0.3, 0.2), size: [4, 14], az: [-10, 20], el: [15, 50], fov: 34, shake: 0.1 }],
+  // delivery trucks on the clear road
+  [43.7, 44.6, { rig: 'orbit', at: P(0, 1.0, -0.2), size: 9, az: [-15, 10], el: [32, 30], fov: 32, shake: 0.1, cut: true }],
+  [44.6, 45.4, { rig: 'orbit', at: P(0, 1.0, -0.2), size: 9, az: [10, 30], el: [32, 28], fov: 32, shake: 0.1 }],
+  // home
+  [45.4, 46.5, { rig: 'orbit', at: P(74, 0.6, 0.3), size: 4.6, az: [-20, 30], el: [12, 14], fov: 32, shake: 0.1, cut: true }],
+  [46.5, 47.7, { rig: 'crane', at: P(71.6, 1.0, 0.3), size: [5, 14], az: [30, -10], el: [12, 46], fov: 34, shake: 0.1 }],
 ];
-SH.forEach(([a, b, s]) => { const big = (a < 3.4 && s.rig !== 'crane' && s.rig !== 'fly') ? 1.9 : (a >= 16 && b <= 43.7 && s.rig !== 'crane' && !(a >= 29 && a < 34.2)) ? 2.1 : 1; if (big !== 1 && s.size) s.size = s.size.map((v) => v * big); CINE.shot(a, b, s); });
+SH.forEach(([a, b, s]) => CINE.shot(a, b, s));
 const LOOK = mkLook({ sun: [0.5, 0.8, 0.5], lit: '#fff4dc', litK: 1.08, shade: '#a8b4e0', ambSky: '#eef4ff', ambGnd: '#f8f0d8', rim: '#fff0d0', fog: '#dcecff', fogR: [40, 260], sky: ['#2a7ae8', '#6ab6f4', '#cfeaff', '#ffffff'], contrast: 1.05, vig: 0.08, glow: 0.35, sat: 1.2, exposure: 1.05, shadow: 0.8 });
 window.renderFrame = function (f) {
   const { t } = setup(f); const cam = guardCam(CINE.at(t)); updateSigns(t, cam); window.__W = W; window.__cam = cam; CAMPOS.set(...cam.pos); for (const Pp of ALL) placeMarks(Pp, t);
